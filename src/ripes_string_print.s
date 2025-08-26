@@ -1,10 +1,10 @@
-#V2.0
+#V2.1
 #improvements:
-#            ASCII Support (Single line)
+#            Support for variable matrix display width
 
 .data
 
-string_to_print: .string "Testing 1,2,3... :)"
+string_to_print: .string "Testing 1,2,3,4,5,6,7,8,9,10... :)"
 
 .equ LED_COLOUR, 0xf6cc4c
 
@@ -12,8 +12,9 @@ ascii: .byte 0x00, 0x00, 0x00, 0x00, 0x00,0x3E, 0x5B, 0x4F, 0x5B, 0x3E,0x3E, 0x6
 current_ascii_index: .byte 0
 string_index: .byte 0
 string_length: .byte 0
-scroll_offset: .byte LED_MATRIX_0_WIDTH 
-termination_offset: .byte 0
+scroll_offset: .word LED_MATRIX_0_WIDTH 
+.equ display_boundary, LED_MATRIX_0_WIDTH 
+termination_offset: .word 0
 .align 4
 .equ video_buffer_address, 0x6ffffff0
 .text
@@ -40,14 +41,14 @@ calculate_termination_offset:
     li t2, 6
     mul t1, t1, t2
     sub t1, zero, t1
-    sb t1, 0(t0)
+    sw t1, 0(t0)
     jr ra
         
 scroll_text:
     la t0, scroll_offset
-    lb t1, 0(t1)
+    lw t1, 0(t1)
     addi t1, t1, -1
-    sb t1, 0(t0)
+    sw t1, 0(t0)
     jr ra
             
 compute_string_length: 
@@ -121,14 +122,14 @@ draw_character:
         add a1, a1, s5
         
         la s4, scroll_offset
-        lb s4, 0(s4)
+        lw s4, 0(s4)
         add a1, a1, s4
         
         row_loop:
             andi t1, t0, 1
             beqz t1, no_light_up
-            li a3, 79
-            bgt a1, a3, no_light_up
+            li a3, display_boundary
+            bge a1, a3, no_light_up
             blt a1, zero, no_light_up
             call write_to_buffer
         no_light_up:
@@ -209,11 +210,11 @@ buffer_filled:
     la t0, string_index
     sb zero, 0(t0)
     la t0, scroll_offset
-    lb t1, 0(t0)
+    lw t1, 0(t0)
     addi t1, t1, -1
-    sb t1, 0(t0)
+    sw t1, 0(t0)
     la t2, termination_offset
-    lb t2, 0(t2)
+    lw t2, 0(t2)
     blt t1, t2, exit_program
     li a7, 30
     ecall
