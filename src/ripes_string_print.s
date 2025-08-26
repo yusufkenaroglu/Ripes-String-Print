@@ -1,12 +1,15 @@
-#V1.3
-#improvements: TEXT AUTO SCROLLING WITH TERMINATION
+#V1.4
+#improvements:
+#              MEMORY-MAPPED VIDEO BUFFER
+#              FLICKERING NOW FIXED
 #ONLY UPPERCASE ENGLISH ALPHABET
 #32 LETTERS MAX
 
 .data
-string_to_print: .string "SCROLLING TEXT"
 
-LED_ON_COLOUR: .word 0xf6cc4c
+string_to_print: .string "NO FLICKER"
+
+LED_COLOUR: .word 0xf6cc4c
 
 A: .byte 0b01111110, 0b00010001, 0b00010001, 0b00010001, 0b01111110
 B: .byte 0b01111111, 0b01001001, 0b01001001, 0b01001001, 0b00110110
@@ -40,32 +43,28 @@ current_alphabet_index: .byte 0
 character_sequence: .byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 character_sequence_index: .byte 0
 character_sequence_length: .byte 0
-scroll_offset: .byte 80
+scroll_offset: .byte LED_MATRIX_0_WIDTH
 termination_offset: .byte 0
-
+.align 4
+video_buffer_address: .word 0x6ffffff0
+#define colour (0x)
 .text
 
-main:
+main: 
     la a0, string_to_print
     la a1, character_sequence
     call convert_string_to_sequence
-    animate:
     la a0, LED_MATRIX_0_BASE
     la a1, LED_MATRIX_0_SIZE 
     add a1, a0, a1
     mv a2, zero
-    call clear_matrix
-    la a0, LED_MATRIX_0_BASE
-    la a1, LED_MATRIX_0_SIZE
-    add a1, a0, a1
-    mv a2, zero
     call calculate_termination_offset
-    d_loop:    
-    call assign_character_index
-    call index_alphabet
-    call next_character
+    animate:   
+        call assign_character_index
+        call index_alphabet
+        call next_character
+        j animate
     
-    j d_loop
     
 calculate_termination_offset:
     la t0, termination_offset
@@ -75,14 +74,14 @@ calculate_termination_offset:
     mul t1, t1, t2
     sub t1, zero, t1
     sb t1, 0(t0)
-    ret
+    jr ra
         
 scroll_text:
     la t0, scroll_offset
     lb t1, 0(t1)
-    addi t1, t1, -1
+    addi t1, t1, -2
     sb t1, 0(t0)
-    ret
+    jr ra
             
 convert_string_to_sequence: 
     xor t0, t0, t0 
@@ -100,7 +99,7 @@ convert_string_to_sequence:
     exit_convert_loop:
     la t1, character_sequence_length
     sb t0, 0(t1)
-    ret
+    jr ra
     
 next_character:
     la t0, character_sequence_index
@@ -108,10 +107,10 @@ next_character:
     la t2, character_sequence_length
     lb t2, 0(t2)
     addi t2, t2, -1
-    beq t1, t2, string_printed
+    beq t1, t2, buffer_filled
     addi t1, t1, 1
     sb t1, 0(t0)
-    ret
+    jr ra
     
 assign_character_index:
     la t0, character_sequence_index
@@ -122,7 +121,7 @@ assign_character_index:
     la t1, current_alphabet_index
     sb t0, 0(t1)
     mv a6, t1
-    ret
+    jr ra
  
 index_alphabet:
     addi sp, sp, -4 
@@ -136,12 +135,12 @@ index_alphabet:
     call draw_character
     lw ra, 0(sp)
     addi sp, sp, 4
-    ret
+    jr ra
     
 draw_character:
     addi sp, sp, -4
     sw ra, 0(sp)
-    la a0, LED_ON_COLOUR
+    la a0, LED_COLOUR
     lw a0, 0(a0)
     li t3, 4
     li t6, 7
@@ -168,7 +167,7 @@ draw_character:
             li a3, 79
             bgt a1, a3, no_light_up
             blt a1, zero, no_light_up
-            call setLED
+            call write_to_buffer
         no_light_up:
             bge a2, t6, exit_row_loop
             srli t0, t0, 1
@@ -183,33 +182,70 @@ draw_character:
     continue:
     lw ra, 0(sp)
     addi sp, sp, 4
-    ret
-    
-    
-setLED: 
-    addi sp, sp, -8
-    sw t0, 4(sp)
-    sw t1, 0(sp)
+    jr ra
+
+write_to_buffer: 
+    addi sp, sp, -16
+    sw t0, 12(sp)
+    sw t1, 8(sp)
+    sw t2, 4(sp)
+    sw t3, 0(sp)
     li t1, LED_MATRIX_0_WIDTH
     mul t0, a2, t1
     add t0, t0, a1
     li t1, 4
     mul t0, t0, t1
-    li t1, LED_MATRIX_0_BASE
-    add t0, t1, t0
-    sw a0, 0(t0)
-    lw t1, 0(sp)
-    lw t0, 4(sp)
-    addi sp, sp, 8
+    la t1, video_buffer_address
+    lw t1, 0(t1)
+    #t0 holds LED coordinate in offset form
+    #t1 holds the base address of video buffer
+    add t1, t1, t0
+    li t3, 0xf6cc4c
+    sw t3, 0(t1)#store non-zero value at video_buffer[LED_coordinate]
+    lw t3, 0(sp)
+    lw t2, 4(sp)
+    lw t1, 8(sp)
+    lw t0, 12(sp)
+    addi sp, sp, 16 
     jr ra
+
+flush_buffer: 
+# for (int i = 0; i < LED_MATRIX_0_SIZE; i++) {
+#    LED_MATRIX_O[i] = video_buffer[i]; video_buffer[i] = colour:
+#    video_buffer[i] = 0;
+#}
+    addi sp, sp, -4
+    sw ra, 0(sp)
+    la t0, video_buffer_address
+    lw t0, 0(t0)
+    li t1, LED_MATRIX_0_BASE
+    li t3, LED_MATRIX_0_SIZE
+    xor t2, t2, t2
+    flush_loop:
+        add s0, t0, t2
+        lw s2, 0(s0)
+        add s1, t1, t2
+        sw s2, 0(s1)
+        sw zero, 0(s0)
+        beq t2, t3, exit_flush_loop
+        addi t2, t2, 4
+        j flush_loop
+        exit_flush_loop:
+        sw ra, 0(sp)
+        addi sp, sp, 4
+        jr ra
+
 
 clear_matrix:
     sw a2, 0(a0)
     addi a0, a0, 4
     blt a0, a1, clear_matrix
-    ret
+    jr ra
     
-string_printed:
+buffer_filled:
+    
+    li a0, 0xf6cc4c
+    call flush_buffer
     la t0, character_sequence_index
     sb zero, 0(t0)
     la t0, scroll_offset
@@ -222,12 +258,12 @@ string_printed:
     li a7, 30
     ecall
     mv t0, a0
-    wait:
+    delay_millis:
         ecall
         sub a1, a0, t0
-        addi a1, a1, -10
-        blt a1, zero, wait
-        li s0, 0
+        addi a1, a1, 0
+        blt a1, zero, delay_millis
+        li s5, 0
         j animate 
         
 exit_program:
