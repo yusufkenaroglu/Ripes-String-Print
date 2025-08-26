@@ -3,7 +3,7 @@ Please read this document carefully to get String Print running properly on your
 <p align="center">
   <img src="https://github.com/yusufkenaroglu/Ripes-String-Print/blob/c5c33358d34ca70f5c9921087396948449b40961/img/Ripes-String-Print-Welcome.gif" width="350" title="WELCOME GIF">
 </p>
-<h1 align = "center"> 🔆Ripes String Print V2.1🔆 </h1>
+<h1 align = "center"> 🔆Ripes String Print🔆 </h1>
 
 ## 1️⃣Installing Ripes
 
