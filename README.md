@@ -1,6 +1,3 @@
-#V1.4
+#V2.0
 #improvements:
-#              MEMORY-MAPPED VIDEO BUFFER
-#              FLICKERING NOW FIXED
-#ONLY UPPERCASE ENGLISH ALPHABET
-#32 LETTERS MAX
+#            ASCII Support (Single line)
