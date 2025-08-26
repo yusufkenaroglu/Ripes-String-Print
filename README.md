@@ -1,9 +1,9 @@
 Please read this document carefully to get String Print running properly on your machine. 
 
 <p align="center">
-  <img src="https://github.com/yusufkenaroglu/Assembly-Projects/blob/4cf5142214acfcc64d702f66c16ee14d8d5ca936/String%20Print/V1.1/img/WELCOME.jpg" width="350" title="WELCOME image">
+  <img src="https://github.com/yusufkenaroglu/Ripes-String-Print/blob/c5c33358d34ca70f5c9921087396948449b40961/img/Ripes-String-Print-Welcome.gif" width="350" title="WELCOME GIF">
 </p>
-<h1 align = "center"> 🔆Ripes String Print V1.1🔆 </h1>
+<h1 align = "center"> 🔆Ripes String Print V2.1🔆 </h1>
 
 ## 1️⃣Installing Ripes
 
