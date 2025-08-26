@@ -1,10 +1,10 @@
-#V1.2
-#improvements: compact character encoding
+#V1.3
+#improvements: TEXT AUTO SCROLLING WITH TERMINATION
 #ONLY UPPERCASE ENGLISH ALPHABET
 #32 LETTERS MAX
 
 .data
-string_to_print: .string "TESTING"
+string_to_print: .string "SCROLLING TEXT"
 
 LED_ON_COLOUR: .word 0xf6cc4c
 
@@ -41,23 +41,25 @@ character_sequence: .byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
 character_sequence_index: .byte 0
 character_sequence_length: .byte 0
 scroll_offset: .byte 80
+termination_offset: .byte 0
 
 .text
 
 main:
+    la a0, string_to_print
+    la a1, character_sequence
+    call convert_string_to_sequence
+    animate:
     la a0, LED_MATRIX_0_BASE
     la a1, LED_MATRIX_0_SIZE 
     add a1, a0, a1
     mv a2, zero
     call clear_matrix
-    la a0, string_to_print
-    la a1, character_sequence
-    call convert_string_to_sequence
     la a0, LED_MATRIX_0_BASE
     la a1, LED_MATRIX_0_SIZE
     add a1, a0, a1
     mv a2, zero
-    
+    call calculate_termination_offset
     d_loop:    
     call assign_character_index
     call index_alphabet
@@ -65,6 +67,15 @@ main:
     
     j d_loop
     
+calculate_termination_offset:
+    la t0, termination_offset
+    la t1, character_sequence_length
+    lb t1, 0(t1)
+    li t2, 6
+    mul t1, t1, t2
+    sub t1, zero, t1
+    sb t1, 0(t0)
+    ret
         
 scroll_text:
     la t0, scroll_offset
@@ -174,6 +185,7 @@ draw_character:
     addi sp, sp, 4
     ret
     
+    
 setLED: 
     addi sp, sp, -8
     sw t0, 4(sp)
@@ -204,13 +216,20 @@ string_printed:
     lb t1, 0(t0)
     addi t1, t1, -1
     sb t1, 0(t0)
+    la t2, termination_offset
+    lb t2, 0(t2)
+    blt t1, t2, exit_program
     li a7, 30
     ecall
     mv t0, a0
     wait:
         ecall
         sub a1, a0, t0
-        addi a1, a1, -100
+        addi a1, a1, -10
         blt a1, zero, wait
         li s0, 0
-        j main 
+        j animate 
+        
+exit_program:
+    li a7, 10
+    ecall
