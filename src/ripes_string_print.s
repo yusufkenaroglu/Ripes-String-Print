@@ -1,7 +1,7 @@
-#V1.1
+#V1.2
 #improvements: compact character encoding
 #ONLY UPPERCASE ENGLISH ALPHABET
-#13 LETTERS MAX
+#32 LETTERS MAX
 
 .data
 string_to_print: .string "TESTING"
@@ -37,9 +37,10 @@ Z: .byte 0b01100001, 0b01010001, 0b01001001, 0b01000101, 0b01000011
 
 uppercase_alphabet: .word A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z
 current_alphabet_index: .byte 0
-character_sequence: .byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+character_sequence: .byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 character_sequence_index: .byte 0
 character_sequence_length: .byte 0
+scroll_offset: .byte 80
 
 .text
 
@@ -61,17 +62,17 @@ main:
     call assign_character_index
     call index_alphabet
     call next_character
-    li a7, 30
-    ecall
-    mv t0, a0
-    wait:
-        ecall
-        sub a1, a0, t0
-        addi a1, a1, -75
-        blt a1, zero, wait
-        li s0, 0
-        j d_loop
+    
+    j d_loop
+    
         
+scroll_text:
+    la t0, scroll_offset
+    lb t1, 0(t1)
+    addi t1, t1, -1
+    sb t1, 0(t0)
+    ret
+            
 convert_string_to_sequence: 
     xor t0, t0, t0 
     convert_loop:
@@ -96,7 +97,7 @@ next_character:
     la t2, character_sequence_length
     lb t2, 0(t2)
     addi t2, t2, -1
-    beq t1, t2, exit_program
+    beq t1, t2, string_printed
     addi t1, t1, 1
     sb t1, 0(t0)
     ret
@@ -135,12 +136,27 @@ draw_character:
     li t6, 7
     xor a1, a1, a1
     column_loop:
+        
         xor a2, a2, a2
         add t0, t4, a1
         lb t0, 0(t0)
+        
+        la s5, character_sequence_index
+        lb s5, 0(s5)
+        li s6, 6
+        mul s5, s5, s6
+        add a1, a1, s5
+        
+        la s4, scroll_offset
+        lb s4, 0(s4)
+        add a1, a1, s4
+        
         row_loop:
             andi t1, t0, 1
             beqz t1, no_light_up
+            li a3, 79
+            bgt a1, a3, no_light_up
+            blt a1, zero, no_light_up
             call setLED
         no_light_up:
             bge a2, t6, exit_row_loop
@@ -148,6 +164,8 @@ draw_character:
             addi a2, a2, 1
             j row_loop
         exit_row_loop:
+            sub a1, a1, s5
+            sub a1, a1, s4
             bge a1, t3, continue
             addi a1, a1, 1
             j column_loop
@@ -157,9 +175,8 @@ draw_character:
     ret
     
 setLED: 
-    addi sp, sp, -4
-    sw t0, 0(sp)
-    addi sp, sp, -4
+    addi sp, sp, -8
+    sw t0, 4(sp)
     sw t1, 0(sp)
     li t1, LED_MATRIX_0_WIDTH
     mul t0, a2, t1
@@ -167,27 +184,33 @@ setLED:
     li t1, 4
     mul t0, t0, t1
     li t1, LED_MATRIX_0_BASE
-    la s5, character_sequence_index
-    lb s5, 0(s5)
-    li s6, 24
-    mul s5, s5, s6
-    add t1, t1, s5
     add t0, t1, t0
     sw a0, 0(t0)
     lw t1, 0(sp)
-    addi sp, sp, 4
-    lw t0, 0(sp)
-    addi sp, sp, 4
+    lw t0, 4(sp)
+    addi sp, sp, 8
     jr ra
 
 clear_matrix:
     sw a2, 0(a0)
     addi a0, a0, 4
-    sw a2, 0(a0)
-    addi a0, a0, 4
     blt a0, a1, clear_matrix
     ret
     
-exit_program:
-    li a7, 10
+string_printed:
+    la t0, character_sequence_index
+    sb zero, 0(t0)
+    la t0, scroll_offset
+    lb t1, 0(t0)
+    addi t1, t1, -1
+    sb t1, 0(t0)
+    li a7, 30
     ecall
+    mv t0, a0
+    wait:
+        ecall
+        sub a1, a0, t0
+        addi a1, a1, -100
+        blt a1, zero, wait
+        li s0, 0
+        j main 

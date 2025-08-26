@@ -1,5 +1,5 @@
-V1.1 only supports upper case English alphabet letters (ASCII 65-90). 
+V1.2 only supports upper case English alphabet letters (ASCII 65-90). 
 
-A maximum of 13 characters can be printed onto the matrix ("WELCOMEBAAACK")
+A maximum of 32 characters can be printed onto the matrix ("WELCOMEBAAACK")
 
 Only non-empty strings print as expected
