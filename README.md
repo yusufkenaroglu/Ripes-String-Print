@@ -70,7 +70,7 @@ Now, you can go back to the editor tab which contains instructions for the assem
   <img src="https://github.com/yusufkenaroglu/Ripes-String-Print/blob/1305ccfbb43e32268860b9bce7caf057f616b8af/img/figure%208.jpg" width="500" title="Ripes program execution button">
 </p>
 
-Without changes to the original program, you should see "Testing 1,2,3,4,5,6,7,8,9,10... :)" get printed on the display letter by letter. The program (for V1.1) stops execution once all letters are printed. (See image below)
+Without changes to the original program, you should see "Testing 1,2,3,4,5,6,7,8,9,10... :)" get printed on the display letter by letter. The program (for V2.1) stops execution once all letters are printed. (See image below)
 
 <p align="center">
   <img src="https://github.com/yusufkenaroglu/Ripes-String-Print/blob/1305ccfbb43e32268860b9bce7caf057f616b8af/img/figure%209%20new.jpg" width="750" title="Ripes printing default strint">
